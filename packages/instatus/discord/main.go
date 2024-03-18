@@ -18,8 +18,7 @@ const (
 type InstatusWebhook struct {
 	PageMeta
 
-	Incident    *Incident    `json:"incident"`
-	Maintenance *Maintenance `json:"maintenance"`
+	Incident *Incident `json:"incident"`
 }
 
 type PageMeta struct {
@@ -84,10 +83,10 @@ func (u *Incident) Emoji() string {
 type IncidentStatus string
 
 const (
-	IncidentStatusInvestigating IncidentStatus = "Investigating"
-	IncidentStatusIdentified    IncidentStatus = "Identified"
-	IncidentStatusMonitoring    IncidentStatus = "Monitoring"
-	IncidentStatusResolved      IncidentStatus = "Resolved"
+	IncidentStatusInvestigating IncidentStatus = "investigating"
+	IncidentStatusIdentified    IncidentStatus = "identified"
+	IncidentStatusMonitoring    IncidentStatus = "monitoring"
+	IncidentStatusResolved      IncidentStatus = "resolved"
 )
 
 type IncidentUpdate struct {
@@ -119,61 +118,6 @@ func (u *IncidentUpdate) Emoji() string {
 	}
 }
 
-type Maintenance struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-	URL  string `json:"url"`
-
-	Duration   float64           `json:"duration"`
-	Status     MaintenanceStatus `json:"status"`
-	Impact     string            `json:"impact"`
-	Backfilled bool              `json:"backfilled"`
-
-	CreatedAt  string  `json:"created_at"`
-	UpdatedAt  string  `json:"updated_at"`
-	ResolvedAt *string `json:"resolved_at"`
-
-	Components []AffectedComponent `json:"affected_components"`
-
-	Updates []MaintenanceUpdate `json:"maintenance_updates"`
-}
-
-func (u *Maintenance) Emoji() string {
-	switch u.Status {
-	case MaintenanceStatusPlanned:
-		return YellowEmoji
-	case MaintenanceStatusInProgress:
-		return RedEmoji
-	case MaintenanceStatusCompleted:
-		return GreenEmoji
-	default:
-		return ""
-	}
-}
-
-type MaintenanceStatus string
-
-const (
-	MaintenanceStatusPlanned    MaintenanceStatus = "Planned"
-	MaintenanceStatusInProgress MaintenanceStatus = "In progress"
-	MaintenanceStatusCompleted  MaintenanceStatus = "Completed"
-)
-
-type MaintenanceUpdate struct {
-	ID            string `json:"id"`
-	MaintenanceID string `json:"maintenance_id"`
-
-	Body     string `json:"body"`
-	Markdown string `json:"markdown"`
-
-	CreatedAt string `json:"created_at"`
-	UpdatedAt string `json:"updated_at"`
-}
-
-func (u *MaintenanceUpdate) HumanizedTime() string {
-	return humanizedTime(u.CreatedAt)
-}
-
 func Main(ctx context.Context, event InstatusWebhook) {
 	webhookID := os.Getenv("DISCORD_WEBHOOK_ID")
 	webhookToken := os.Getenv("DISCORD_WEBHOOK_TOKEN")
@@ -186,8 +130,6 @@ func Main(ctx context.Context, event InstatusWebhook) {
 	var e *discordgo.MessageEmbed
 	if event.Incident != nil {
 		e = makeIncidentEmbed(event.Incident)
-	} else if event.Maintenance != nil {
-		e = makeMaintenanceEmbed(event.Maintenance)
 	} else {
 		return
 	}
@@ -217,7 +159,7 @@ func makeIncidentEmbed(inc *Incident) *discordgo.MessageEmbed {
 	}
 
 	return &discordgo.MessageEmbed{
-		URL:    inc.URL,
+		URL:    fmt.Sprintf("https://discordstatus.com/incident/%s", inc.ID),
 		Title:  fmt.Sprintf("%s Incident: %s", inc.Emoji(), inc.Name),
 		Color:  0x2483C5,
 		Fields: fields,
@@ -225,29 +167,6 @@ func makeIncidentEmbed(inc *Incident) *discordgo.MessageEmbed {
 			Text: "Started at",
 		},
 		Timestamp: inc.CreatedAt,
-	}
-}
-
-func makeMaintenanceEmbed(m *Maintenance) *discordgo.MessageEmbed {
-	var fields []*discordgo.MessageEmbedField
-
-	sort.Slice(m.Updates, func(i, j int) bool {
-		return m.Updates[i].CreatedAt < m.Updates[j].CreatedAt
-	})
-
-	for _, u := range m.Updates {
-		fields = append(fields, &discordgo.MessageEmbedField{
-			Name:   fmt.Sprintf("Update (%s)", u.HumanizedTime()),
-			Value:  u.Markdown,
-			Inline: false,
-		})
-	}
-
-	return &discordgo.MessageEmbed{
-		URL:    m.URL,
-		Title:  fmt.Sprintf("%s Maintenance: %s", m.Emoji(), m.Name),
-		Color:  0x2483C5,
-		Fields: fields,
 	}
 }
 
