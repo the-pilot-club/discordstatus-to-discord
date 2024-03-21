@@ -153,7 +153,7 @@ func makeIncidentEmbed(inc *Incident) *discordgo.MessageEmbed {
 	for _, u := range inc.Updates {
 		fields = append(fields, &discordgo.MessageEmbedField{
 			Name:   fmt.Sprintf("%s %s (%s)", u.Emoji(), u.Status, u.HumanizedTime()),
-			Value:  u.Markdown,
+			Value:  u.Body,
 			Inline: false,
 		})
 	}
