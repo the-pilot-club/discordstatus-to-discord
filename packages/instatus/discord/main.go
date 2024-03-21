@@ -159,7 +159,7 @@ func makeIncidentEmbed(inc *Incident) *discordgo.MessageEmbed {
 	}
 
 	return &discordgo.MessageEmbed{
-		URL:    fmt.Sprintf("https://discordstatus.com/incident/%s", inc.ID),
+		URL:    fmt.Sprintf("https://discordstatus.com/incidents/%s", inc.ID),
 		Title:  fmt.Sprintf("%s Incident: %s", inc.Emoji(), inc.Name),
 		Color:  0x2483C5,
 		Fields: fields,
